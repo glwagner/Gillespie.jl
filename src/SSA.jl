@@ -49,20 +49,23 @@ end
 
 
 "
-This function is a substitute for `StatsBase.sample(wv::WeightVec)`, which avoids recomputing the sum and size of the weight vector, as well as a type conversion of the propensity vector. It takes the following arguments:
+This function is a substitute for `StatsBase.sample(wv::WeightVec)`,
+which avoids recomputing the sum and size of the weight vector,
+as well as a type conversion of the propensity vector.
+It takes the following arguments:
 
-- **w** : an `Array{Float64,1}`, representing propensity function weights.
-- **s** : the sum of `w`.
-- **n** : the length of `w`.
+- weights : an `Array{Float64, 1}`, representing propensity function weights.
+- total : the sum of `w`.
+- n : the length of `w`.
 
 "
-function propensity_sample(w, s, n)
+function propensity_sample(weights, s, n)
     t = rand() * s
     i = 1
-    cw = w[1]
+    cw = weights[1]
     while cw < t && i < n
         i += 1
-        @inbounds cw += w[i]
+        @inbounds cw += weights[i]
     end
     return i
 end
@@ -123,12 +126,12 @@ function gillespie(initial_state, propensity_function, rates, parameters, stop_t
         push!(times, time)
 
         # Update event
-        events = propensity_sample(propensity, total_propensity, n_propensities)
+        event = propensity_sample(propensity, total_propensity, n_propensities)
 
         if state isa SVector
-            @inbounds state[1] += rates[events, :]
+            @inbounds state[1] += rates[event, :]
         else
-            Δx = view(rates, events, :)
+            Δx = view(rates, event, :)
 
             for i in 1:nstates
                 @inbounds state[1, i] += Δx[i]
